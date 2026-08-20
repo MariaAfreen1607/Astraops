@@ -35,6 +35,7 @@ DEFAULT_STEP_SECONDS = 30      # coarse grid resolution
 REFINE_STEP_SECONDS = 1        # fine grid resolution near TCA
 MAX_SATELLITES = 150           # O(N^2 * T) guard
 DOCKED_FLOOR_KM = 0.050        # pairs closer than this are treated as co-located, not conjunctions
+DOCKED_FLOOR_KM = 0.050        # pairs closer than this are treated as co-located, not conjunctions
 
 
 def _time_grid(start: datetime, minutes: int, step_s: int):
