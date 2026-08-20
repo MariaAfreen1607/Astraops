@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
 
     # CelesTrak
-    celestrak_gp_url: str = "https://celestrak.org/gp.php"
+    celestrak_gp_url: str = "https://celestrak.org/NORAD/elements/gp.php"
 
     # NASA DONKI
     nasa_donki_base_url: str = "https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get"

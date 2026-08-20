@@ -87,7 +87,7 @@ async def fetch_satellites(group: str = "active") -> SatelliteListResponse:
     params = {"GROUP": group, "FORMAT": "tle"}
 
     try:
-        async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
+        async with httpx.AsyncClient(timeout=settings.http_timeout, follow_redirects=True, headers={"User-Agent": "AstraOps/0.1 (hackathon project)"}) as client:
             response = await client.get(url, params=params)
             response.raise_for_status()
             satellites = _parse_tle_text(response.text)
@@ -125,7 +125,7 @@ async def fetch_satellite_by_norad(norad_id: str) -> Optional[SatelliteDetailRes
     params = {"CATNR": norad_id, "FORMAT": "tle"}
 
     try:
-        async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
+        async with httpx.AsyncClient(timeout=settings.http_timeout, follow_redirects=True, headers={"User-Agent": "AstraOps/0.1 (hackathon project)"}) as client:
             response = await client.get(url, params=params)
             response.raise_for_status()
             records = _parse_tle_text(response.text)
