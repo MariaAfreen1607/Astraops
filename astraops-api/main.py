@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import logging
 import sys
 from contextlib import asynccontextmanager
@@ -13,7 +16,7 @@ from fastapi.responses import JSONResponse
 
 from cache import cache
 from config import get_settings
-from routers import conjunctions, research, satellites, spaceweather
+from routers import briefs, conjunctions, research, satellites, spaceweather
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -85,6 +88,7 @@ def create_app() -> FastAPI:
     # Routers
     # -----------------------------------------------------------------------
     app.include_router(satellites.router)
+    app.include_router(briefs.router)
     app.include_router(conjunctions.router)
     app.include_router(spaceweather.router)
     app.include_router(research.router)
