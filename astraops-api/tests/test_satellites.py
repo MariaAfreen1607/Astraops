@@ -175,7 +175,7 @@ class TestFetchSatellites:
         await fetch_satellites("active")  # must use cache
         assert call_count["n"] == 1
 
-    async def test_timeout_returns_empty_satellite_list(self, monkeypatch):
+    async def test_timeout_falls_back_to_last_known_good(self, monkeypatch):
         def timeout_handler(request: httpx.Request) -> httpx.Response:
             raise httpx.TimeoutException("timed out", request=request)
 
@@ -184,13 +184,23 @@ class TestFetchSatellites:
             lambda **kw: _RealAsyncClient(transport=httpx.MockTransport(timeout_handler)),
         )
         result = await fetch_satellites("active")
-        assert result.satellites == []
-        assert result.count == 0
+        assert result.source == "CelesTrak"
+        assert result.count == len(result.satellites)
 
-    async def test_http_500_returns_empty_satellite_list(self, monkeypatch):
+        seeded = await fetch_satellites("stations")
+        assert seeded.count > 0, "a seeded group must survive a timeout"
+
+        seeded = await fetch_satellites("stations")
+        assert seeded.count > 0, "a seeded group must survive a timeout"
+
+    async def test_http_500_falls_back_to_last_known_good(self, monkeypatch):
         _patch_httpx(monkeypatch, 500, "Server Error")
         result = await fetch_satellites("active")
-        assert result.satellites == []
+        assert result.source == "CelesTrak"
+        assert result.count == len(result.satellites)
+
+        seeded = await fetch_satellites("stations")
+        assert seeded.count > 0, "a seeded group must survive an upstream 500"
 
     async def test_stale_notice_returns_cached_stale_data(self, monkeypatch):
         """When CelesTrak replies with its 'has not updated' notice, the service
@@ -221,11 +231,15 @@ class TestFetchSatellites:
         assert result.satellites == [stale_satellite]
         assert result.count == 1
 
-    async def test_stale_notice_with_no_prior_cache_returns_empty(self, monkeypatch):
+    async def test_stale_notice_falls_back_to_seed(self, monkeypatch):
         stale_notice = "has not updated since your last successful retrieval"
         _patch_httpx(monkeypatch, 200, stale_notice)
         result = await fetch_satellites("active")
-        assert result.satellites == []
+        assert result.source == "CelesTrak"
+        assert result.count == len(result.satellites)
+
+        seeded = await fetch_satellites("stations")
+        assert seeded.count > 0, "a seeded group must survive a stale-data notice"
 
 
 @pytest.mark.asyncio
