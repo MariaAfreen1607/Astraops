@@ -51,6 +51,12 @@ async def list_satellites(
     return result
 
 
+@router.get("/positions", summary="Current geodetic positions for a satellite group")
+async def satellite_positions(group: str = "starlink", limit: int = 400):
+    from services.satellites import current_positions
+    return await current_positions(group=group, limit=limit)
+
+
 @router.get(
     "/{norad_id}",
     response_model=SatelliteDetailResponse,

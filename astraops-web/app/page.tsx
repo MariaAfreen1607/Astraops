@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api, SatelliteList, SpaceWeather, ConjunctionScreen } from "@/lib/api";
+import OrbitGlobe from "@/components/OrbitGlobe";
 
 export default function Dashboard() {
   const [sats, setSats] = useState<SatelliteList | null>(null);
@@ -37,6 +38,10 @@ export default function Dashboard() {
         <Card title="Strongest flare (7d)" value={strongestFlare?.class_type ?? (sw ? "none" : "…")}
               sub={strongestFlare?.active_region ? `active region ${strongestFlare.active_region}` : "NASA DONKI"} />
       </div>
+
+      <section className="mt-10">
+        <OrbitGlobe group="active" limit={400} />
+      </section>
 
       <section className="mt-10">
         <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">Highest-risk approaches</h2>

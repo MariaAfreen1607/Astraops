@@ -90,7 +90,17 @@ async def fetch_satellites(group: str = "active") -> SatelliteListResponse:
         async with httpx.AsyncClient(timeout=settings.http_timeout, follow_redirects=True, headers={"User-Agent": "AstraOps/0.1 (hackathon project)"}) as client:
             response = await client.get(url, params=params)
             response.raise_for_status()
-            satellites = _parse_tle_text(response.text)
+            body = response.text
+            # CelesTrak returns a plain-text notice (not TLEs) when its 2-hourly
+            # dataset has not refreshed since this client's last successful pull.
+            if "has not updated since your last successful" in body:
+                logger.info("CelesTrak reports no new data for '%s'; serving last known set", group)
+                stale = cache.get(f"tle:stale:{group}")
+                if stale:
+                    return stale
+                satellites = []
+            else:
+                satellites = _parse_tle_text(body)
     except httpx.TimeoutException:
         logger.warning("CelesTrak request timed out for group '%s'", group)
         satellites = []
@@ -109,6 +119,8 @@ async def fetch_satellites(group: str = "active") -> SatelliteListResponse:
     )
     if satellites:
         cache.set(cache_key, result, settings.tle_cache_ttl)
+        # Long-lived fallback so a "no new data" notice never empties the UI.
+        cache.set(f"tle:stale:{group}", result, 86400)
     return result
 
 
@@ -143,3 +155,60 @@ async def fetch_satellite_by_norad(norad_id: str) -> Optional[SatelliteDetailRes
     )
     cache.set(cache_key, result, settings.tle_cache_ttl)
     return result
+
+
+async def current_positions(group: str = "starlink", limit: int = 400) -> dict:
+    """Propagate a group to the current epoch and return geodetic positions.
+
+    SGP4 returns TEME coordinates; these are converted to ECEF by rotating through
+    Greenwich Mean Sidereal Time, then to geodetic lat/lon/alt on a spherical Earth.
+    Spherical is adequate for display purposes — sub-degree error at these scales.
+    """
+    import math as _m
+    from datetime import datetime as _dt, timezone as _tz
+    from sgp4.api import Satrec, jday
+
+    resp = await fetch_satellites(group)
+    now = _dt.now(_tz.utc)
+    jd, fr = jday(now.year, now.month, now.day, now.hour, now.minute,
+                  now.second + now.microsecond * 1e-6)
+
+    # Greenwich Mean Sidereal Time (IAU 1982), radians
+    t = ((jd + fr) - 2451545.0) / 36525.0
+    gmst_s = 67310.54841 + (876600.0 * 3600 + 8640184.812866) * t \
+             + 0.093104 * t * t - 6.2e-6 * t * t * t
+    gmst = _m.radians((gmst_s % 86400.0) / 240.0)
+
+    R_EARTH = 6371.0
+    out = []
+    for rec in resp.satellites[:limit]:
+        try:
+            s = Satrec.twoline2rv(rec.line1, rec.line2)
+        except Exception:
+            continue
+        err, pos, _v = s.sgp4(jd, fr)
+        if err != 0:
+            continue
+        x, y, z = pos
+        # TEME -> ECEF
+        xe = x * _m.cos(gmst) + y * _m.sin(gmst)
+        ye = -x * _m.sin(gmst) + y * _m.cos(gmst)
+        ze = z
+        r = _m.sqrt(xe * xe + ye * ye + ze * ze)
+        if r < 1e-6:
+            continue
+        out.append({
+            "name": rec.name,
+            "norad_cat_id": rec.norad_cat_id,
+            "lat": round(_m.degrees(_m.asin(ze / r)), 4),
+            "lon": round((_m.degrees(_m.atan2(ye, xe)) + 180) % 360 - 180, 4),
+            "alt_km": round(r - R_EARTH, 2),
+            "inclination_deg": rec.inclination_deg,
+        })
+
+    return {
+        "epoch": now.isoformat(),
+        "group": group,
+        "count": len(out),
+        "satellites": out,
+    }

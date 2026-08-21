@@ -46,3 +46,12 @@ export interface SeparationProfile {
   window_minutes: number; step_seconds: number;
   tca: string; min_separation_km: number; points: ProfilePoint[];
 }
+
+export interface SatPosition {
+  name: string; norad_cat_id: string;
+  lat: number; lon: number; alt_km: number;
+  inclination_deg: number | null;
+}
+export interface PositionSet {
+  epoch: string; group: string; count: number; satellites: SatPosition[];
+}
