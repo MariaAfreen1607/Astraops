@@ -156,7 +156,12 @@ npm run dev
 
 ## Testing
 
-The backend has **84 passing tests** covering TLE parsing, the CelesTrak stale-notice fallback path, SGP4 conjunction screening edge cases, the DONKI proxy error handler, and the TTL cache. All external HTTP calls are stubbed with `httpx.MockTransport` — no test touches the network.
+The project has **136 passing tests** — **84 backend** covering TLE parsing, the CelesTrak stale-notice fallback path, SGP4 conjunction screening edge cases, the DONKI proxy error handler, and the TTL cache. All external HTTP calls are stubbed with `httpx.MockTransport` — no test touches the network.
+
+The frontend has **52 tests** under Vitest with React Testing Library, covering the API
+client's error handling, all four pages, and the separation chart's velocity-regime
+classification. `next/dynamic` and `react-globe.gl` are stubbed so the WebGL globe does not
+need to render in jsdom.
 
 ```bash
 cd astraops-api
