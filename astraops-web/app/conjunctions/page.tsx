@@ -5,8 +5,8 @@ import SeparationChart from "@/components/SeparationChart";
 import Explain from "@/components/Explain";
 
 export default function Conjunctions() {
-  const [group, setGroup] = useState("starlink");
-  const [threshold, setThreshold] = useState(20);
+  const [group, setGroup] = useState("stations");
+  const [threshold, setThreshold] = useState(500);
   const [data, setData] = useState<ConjunctionScreen | null>(null);
   const [brief, setBrief] = useState<Brief | null>(null);
   const [loading, setLoading] = useState(false);
@@ -21,13 +21,18 @@ export default function Conjunctions() {
       .then(setProfile).catch(e => setErr(e.message)).finally(() => setProfiling(false));
   };
 
+  const [phase, setPhase] = useState<string>("");
+
   const run = () => {
     setLoading(true); setErr(null); setData(null); setBrief(null); setProfile(null);
+    setPhase("Fetching element sets from CelesTrak…");
+    const t1 = setTimeout(() => setPhase("Propagating orbits with SGP4…"), 1200);
+    const t2 = setTimeout(() => setPhase("Computing pairwise distances across the window…"), 4000);
+    const t3 = setTimeout(() => setPhase("Refining time of closest approach…"), 9000);
+    const clear = () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); setPhase(""); };
     api<ConjunctionScreen>(`/conjunctions?group=${group}&threshold_km=${threshold}`)
-      .then(setData).catch(e => setErr(e.message)).finally(() => setLoading(false));
+      .then(setData).catch(e => setErr(e.message)).finally(() => { clear(); setLoading(false); });
   };
-
-  useEffect(run, []);
 
   const getBrief = () => {
     setBriefing(true);
@@ -42,7 +47,7 @@ export default function Conjunctions() {
         SGP4 propagation over a 3-hour window, refined to 1-second resolution near closest approach.
       </p>
 
-      <div className="mt-6 flex flex-wrap items-end gap-3">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
         <label className="text-xs ">
           <div className="mb-1">CelesTrak group</div>
           <select value={group} onChange={e => setGroup(e.target.value)}
@@ -71,6 +76,29 @@ export default function Conjunctions() {
         )}
       </div>
 
+      {!data && !loading && !err && (
+        <div className="sheet mt-6 p-5">
+          <div className="eyebrow">Ready to screen</div>
+          <div className="mt-2 text-[12.5px]">
+            Pick a satellite group and a miss-distance threshold, then run the screening. Every pair
+            in the group is propagated forward three hours and checked at every step.
+          </div>
+        </div>
+      )}
+
+      {loading && (
+        <div className="sheet mt-6 p-5">
+          <div className="eyebrow">Screening in progress</div>
+          <div className="mt-2 text-[12.5px]">{phase}</div>
+          <div className="mt-3 h-[3px] w-full" style={{ background: "var(--grid)" }}>
+            <div className="h-full animate-pulse" style={{ background: "var(--plot)", width: "45%" }} />
+          </div>
+          <div className="mt-2 text-[11px]" style={{ color: "var(--ink-dim)" }}>
+            Large groups take 20–40 seconds. Every pair is propagated across a three-hour window.
+          </div>
+        </div>
+      )}
+
       {err && <div className="mt-6 sheet p-4 text-sm">{err}</div>}
 
       {brief && (
@@ -85,10 +113,19 @@ export default function Conjunctions() {
 
       {data && (
         <>
-          <div className="mt-8 text-xs ">
-            {data.total_pairs_screened.toLocaleString()} pairs screened · {data.events.length} below {data.threshold_km} km
+          <div className="mt-8 text-[12px]">
+            {data.total_pairs_screened.toLocaleString()} pairs screened over{" "}
+            {data.window_minutes ?? 180} minutes · {data.events.length} below {data.threshold_km} km
           </div>
-          <div className="mt-3 sheet overflow-hidden">
+          {data.objects_available != null && data.objects_screened != null &&
+           data.objects_available > data.objects_screened && (
+            <div className="mt-1 text-[11px]" style={{ color: "var(--ink-mid)" }}>
+              Screening the first {data.objects_screened} of {data.objects_available.toLocaleString()} objects
+              in this group. Pairwise screening is O(n²) — the full catalogue needs a spatial index,
+              which is out of scope here.
+            </div>
+          )}
+          <div className="mt-3 sheet overflow-x-auto">
             <table className="ops">
               <thead className="text-left">
                 <tr><th className="p-3">Primary</th><th className="p-3">Secondary</th><th className="p-3">TCA (UTC)</th>

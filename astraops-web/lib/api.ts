@@ -24,6 +24,7 @@ export interface ConjunctionEvent {
 }
 export interface ConjunctionScreen {
   screened_at: string; total_pairs_screened: number; threshold_km: number; events: ConjunctionEvent[];
+  objects_screened?: number; objects_available?: number; window_minutes?: number;
 }
 
 export interface SolarFlare { flare_id: string; peak_time: string | null; class_type: string | null; active_region: string | null; source_location: string | null; }

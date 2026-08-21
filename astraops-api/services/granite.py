@@ -98,17 +98,38 @@ def _get_llm():
         return None
 
 
-def _invoke(system: str, user: str) -> str:
+def _invoke(system: str, user: str, attempts: int = 3) -> str:
+    """Call Granite, retrying transient failures.
+
+    The watsonx trial plan caps concurrent requests per model, so a burst of
+    clicks returns 429. That is transient and worth waiting out; a bad request
+    or bad credentials is not, and fails immediately.
+    """
+    import time
+
     llm = _get_llm()
     if llm is None:
-        return "AI briefing unavailable: watsonx credentials not configured."
-    try:
-        from langchain_core.messages import HumanMessage, SystemMessage
-        resp = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
-        return resp.content.strip()
-    except Exception as exc:
-        logger.error("Granite invocation failed: %s", exc)
-        return f"AI briefing unavailable: {exc}"
+        return "AI briefing unavailable — watsonx credentials are not configured."
+
+    from langchain_core.messages import HumanMessage, SystemMessage
+    msgs = [SystemMessage(content=system), HumanMessage(content=user)]
+
+    for attempt in range(attempts):
+        try:
+            return llm.invoke(msgs).content.strip()
+        except Exception as exc:
+            text = str(exc)
+            transient = "429" in text or "consumption_limit" in text or "timeout" in text.lower()
+            if transient and attempt < attempts - 1:
+                wait = 2 ** attempt
+                logger.warning("Granite busy (attempt %d/%d); retrying in %ds", attempt + 1, attempts, wait)
+                time.sleep(wait)
+                continue
+            logger.error("Granite invocation failed: %s", exc)
+            if transient:
+                return ("The watsonx free tier is at its concurrent-request limit right now. "
+                        "Wait a few seconds and generate the brief again.")
+            return "AI briefing unavailable — the model could not be reached."
 
 
 def brief_space_weather(flares, cmes, storms) -> str:

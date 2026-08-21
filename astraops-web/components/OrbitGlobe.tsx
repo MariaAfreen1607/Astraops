@@ -12,6 +12,18 @@ export default function OrbitGlobe({ group = "starlink", limit = 400 }: { group?
   const [err, setErr] = useState<string | null>(null);
   const [hover, setHover] = useState<SatPosition | null>(null);
   const globeEl = useRef<any>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [side, setSide] = useState(560);
+
+  useEffect(() => {
+    const fit = () => {
+      const w = boxRef.current?.clientWidth ?? 560;
+      setSide(Math.max(280, Math.min(w, 620)));
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
 
   const load = () => {
     api<PositionSet>(`/satellites/positions?group=${group}&limit=${limit}`)
@@ -59,12 +71,12 @@ export default function OrbitGlobe({ group = "starlink", limit = 400 }: { group?
         Drag to rotate · Pinch or scroll to zoom
       </div>
 
-      <div className="mt-3 flex justify-center">
+      <div ref={boxRef} className="mt-3 flex justify-center">
         {data && (
           <Globe
             ref={globeEl}
-            width={620}
-            height={620}
+            width={side}
+            height={side}
             backgroundColor="rgba(0,0,0,0)"
             globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
             bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"

@@ -55,6 +55,9 @@ class ConjunctionScreenResponse(BaseModel):
     total_pairs_screened: int
     threshold_km: float
     events: list[ConjunctionEvent]
+    objects_screened: int = 0
+    objects_available: int = 0
+    window_minutes: int = 180
 
 
 # ---------------------------------------------------------------------------

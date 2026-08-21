@@ -31,6 +31,13 @@ export default function SpaceWeatherPage() {
         {briefing ? "Granite is analysing…" : "Generate operational brief"}
       </button>
 
+      {briefing && (
+        <div className="sheet mt-6 p-5">
+          <div className="eyebrow">Generating brief</div>
+          <div className="mt-2 text-[12.5px]">Granite is reading the event data and drafting the brief. This usually takes 5–15 seconds.</div>
+        </div>
+      )}
+
       {err && <div className="mt-6 sheet p-4 text-sm">{err}</div>}
 
       {brief && (

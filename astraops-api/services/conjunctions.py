@@ -181,6 +181,9 @@ async def screen_conjunctions(
         total_pairs_screened=total_pairs,
         threshold_km=threshold_km,
         events=events,
+        objects_screened=n,
+        objects_available=len(sat_response.satellites),
+        window_minutes=window_minutes,
     )
     cache.set(cache_key, result, settings.conjunction_cache_ttl)
     return result

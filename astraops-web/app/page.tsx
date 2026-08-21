@@ -13,7 +13,7 @@ export default function Dashboard() {
   useEffect(() => {
     api<SatelliteList>("/satellites?group=stations").then(setSats).catch(e => setErr(e.message));
     api<SpaceWeather>("/spaceweather").then(setSw).catch(() => {});
-    api<ConjunctionScreen>("/conjunctions?group=stations&threshold_km=50").then(setConj).catch(() => {});
+    api<ConjunctionScreen>("/conjunctions?group=stations&threshold_km=500").then(setConj).catch(() => {});
   }, []);
 
   const flares = sw?.solar_flares?.filter(f => f.class_type) ?? [];
@@ -49,7 +49,7 @@ export default function Dashboard() {
           value={conj ? String(conj.events.length) : "…"}
           unit={conj ? `within ${conj.threshold_km} km, next 3 h` : "screening"}
           note={conj
-            ? `${conj.total_pairs_screened.toLocaleString()} satellite pairs checked. Zero is the healthy result.`
+            ? `${conj.total_pairs_screened.toLocaleString()} pairs propagated forward and checked at every step.`
             : "Propagating every pair forward in time."} />
         <Card
           label="Strongest flare"
@@ -74,7 +74,7 @@ export default function Dashboard() {
 
       <section className="mt-10">
         <div className="eyebrow">Closest approaches in the next three hours</div>
-        <div className="sheet mt-3 overflow-hidden">
+        <div className="sheet mt-3 overflow-x-auto">
           <table className="ops">
             <thead>
               <tr><th>Primary</th><th>Secondary</th><th>Miss</th><th>Relative velocity</th><th>Risk</th></tr>

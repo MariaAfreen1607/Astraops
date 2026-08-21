@@ -55,6 +55,19 @@ export default function Research() {
         ))}
       </div>
 
+      {busy && (
+        <div className="sheet mt-6 p-5">
+          <div className="eyebrow">Retrieving</div>
+          <div className="mt-2 text-[12.5px]">
+            Embedding the question, searching the vector index, and asking Granite to answer from
+            the retrieved passages.
+          </div>
+          <div className="mt-2 text-[11px]" style={{ color: "var(--ink-dim)" }}>
+            The first query after a restart also builds the index and can take a minute.
+          </div>
+        </div>
+      )}
+
       {err && <div className="sheet mt-6 p-4 text-[12.5px]" style={{ borderLeft: "3px solid var(--oxide)" }}>{err}</div>}
 
       {res && (

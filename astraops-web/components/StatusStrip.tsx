@@ -27,7 +27,7 @@ export default function StatusStrip() {
   const ageMin = fetched ? Math.floor((Date.now() - fetched.getTime()) / 60000) : null;
 
   return (
-    <div className="flex items-center gap-7 border-b px-6 py-2 text-[11px]"
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b px-4 py-2 text-[11px] md:gap-x-7 md:px-6"
          style={{ borderColor: "var(--rule)", background: "var(--sheet)" }}>
       <div className="flex items-center gap-2">
         <span className="live-dot text-[9px]"
@@ -46,7 +46,7 @@ export default function StatusStrip() {
           {ageMin === null ? "—" : `${ageMin} min`}
         </span>
       </div>
-      <div className="ml-auto eyebrow" style={{ color: "var(--ink-dim)" }}>
+      <div className="ml-auto hidden eyebrow sm:block" style={{ color: "var(--ink-dim)" }}>
         CelesTrak refreshes every 2 h
       </div>
     </div>
