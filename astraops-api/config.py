@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     nasa_donki_base_url: str = "https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get"
     nasa_api_key: str = "DEMO_KEY"
 
+    # Watsonx / RAG
+    watsonx_apikey: str = ""
+    watsonx_project_id: str = ""
+    watsonx_url: str = "https://us-south.ml.cloud.ibm.com"
+
+    # RAG paths (relative to project root)
+    corpus_dir: str = "corpus"
+    chroma_db_dir: str = "chroma_db"
+
     # Cache TTL (seconds)
     tle_cache_ttl: int = 3600          # 1 hour
     spaceweather_cache_ttl: int = 900  # 15 minutes
