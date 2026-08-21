@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api, SatelliteList, SpaceWeather, ConjunctionScreen } from "@/lib/api";
 import OrbitGlobe from "@/components/OrbitGlobe";
 import Explain from "@/components/Explain";
+import { Rocket, Satellite, Star } from "@/components/Sticker";
 
 export default function Dashboard() {
   const [sats, setSats] = useState<SatelliteList | null>(null);
@@ -23,7 +24,10 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="doc-title">Mission Dashboard</h1>
+      <div className="flex items-center gap-3">
+        <Rocket size={30} />
+        <h1 className="doc-title">Mission Dashboard</h1>
+      </div>
 
       <p className="mt-4 text-[13px] leading-relaxed" style={{ maxWidth: "76ch" }}>
         Space agencies publish orbital and solar data openly and continuously. Almost none of it is
@@ -61,7 +65,10 @@ export default function Dashboard() {
       </div>
 
       <section className="mt-9">
-        <div className="eyebrow">Where everything is right now</div>
+        <div className="flex items-center gap-2">
+          <Satellite size={20} />
+          <div className="eyebrow">Where everything is right now</div>
+        </div>
         <p className="mt-2 text-[12px]" style={{ color: "var(--ink-mid)", maxWidth: "76ch" }}>
           Each marker is a real object, positioned by propagating its current element set to this
           second. Altitude is compressed logarithmically so low orbit and geostationary orbit are
@@ -73,7 +80,10 @@ export default function Dashboard() {
       </section>
 
       <section className="mt-10">
-        <div className="eyebrow">Closest approaches in the next three hours</div>
+        <div className="flex items-center gap-2">
+          <Star size={16} />
+          <div className="eyebrow">Closest approaches in the next three hours</div>
+        </div>
         <div className="sheet mt-3 overflow-x-auto">
           <table className="ops">
             <thead>

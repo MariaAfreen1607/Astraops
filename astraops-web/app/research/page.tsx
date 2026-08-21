@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { api, ResearchAnswer } from "@/lib/api";
 import Explain from "@/components/Explain";
+import { Book } from "@/components/Sticker";
 
 const EXAMPLES = [
   "Why did the February 2022 Starlink satellites re-enter?",
@@ -32,7 +33,10 @@ export default function Research() {
 
   return (
     <div>
-      <h1 className="doc-title">Research Copilot</h1>
+      <div className="flex items-center gap-3">
+        <Book size={30} />
+        <h1 className="doc-title">Research Copilot</h1>
+      </div>
       <p className="mt-4 text-[13px]" style={{ maxWidth: "72ch" }}>
         Ask a question and get an answer drawn from indexed space-operations literature,
         with the source passages shown so you can check the reasoning yourself.

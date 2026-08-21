@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api, ConjunctionScreen, Brief, SeparationProfile } from "@/lib/api";
 import SeparationChart from "@/components/SeparationChart";
 import Explain from "@/components/Explain";
+import { Satellite } from "@/components/Sticker";
 
 export default function Conjunctions() {
   const [group, setGroup] = useState("stations");
@@ -42,7 +43,10 @@ export default function Conjunctions() {
 
   return (
     <div>
-      <h1 className="doc-title">Conjunction Watch</h1>
+      <div className="flex items-center gap-3">
+        <Satellite size={30} />
+        <h1 className="doc-title">Conjunction Watch</h1>
+      </div>
       <p className="mt-1 text-sm ">
         SGP4 propagation over a 3-hour window, refined to 1-second resolution near closest approach.
       </p>

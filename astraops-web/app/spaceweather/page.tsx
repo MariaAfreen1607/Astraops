@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { api, SpaceWeather, Brief } from "@/lib/api";
 import Explain from "@/components/Explain";
+import { Sun } from "@/components/Sticker";
 
 export default function SpaceWeatherPage() {
   const [data, setData] = useState<SpaceWeather | null>(null);
@@ -21,7 +22,10 @@ export default function SpaceWeatherPage() {
 
   return (
     <div>
-      <h1 className="doc-title">Space Weather Sentinel</h1>
+      <div className="flex items-center gap-3">
+        <Sun size={30} />
+        <h1 className="doc-title">Space Weather Sentinel</h1>
+      </div>
       <p className="mt-1 text-sm ">
         NOAA&apos;s G-scale was calibrated for power grids, not orbital drag. These briefs translate events into orbit-regime impact.
       </p>
