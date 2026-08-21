@@ -55,3 +55,9 @@ export interface SatPosition {
 export interface PositionSet {
   epoch: string; group: string; count: number; satellites: SatPosition[];
 }
+
+export interface ResearchSource { document_id: string; title: string; excerpt: string; score: number; }
+export interface ResearchAnswer {
+  question: string; answer: string; sources: ResearchSource[];
+  model_used: string; answered_at: string;
+}

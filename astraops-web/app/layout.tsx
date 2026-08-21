@@ -1,42 +1,32 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import "./globals.css";
+import NavRail from "@/components/NavRail";
+import StatusStrip from "@/components/StatusStrip";
 
 export const metadata: Metadata = {
   title: "AstraOps — Mission Intelligence",
-  description: "Turning live space data into operational decisions.",
+  description: "Live orbital and heliophysics data, screened and interpreted.",
 };
-
-const NAV = [
-  { href: "/", label: "Mission Dashboard" },
-  { href: "/conjunctions", label: "Conjunction Watch" },
-  { href: "/spaceweather", label: "Space Weather" },
-  { href: "/research", label: "Research Copilot" },
-];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-slate-950 text-slate-100 antialiased">
+      <head>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans+Condensed:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" />
+      </head>
+      <body>
+        <StatusStrip />
         <div className="flex min-h-screen">
-          <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-900/60 p-6">
-            <Link href="/" className="block">
-              <div className="text-xl font-semibold tracking-tight">AstraOps</div>
-              <div className="mt-1 text-xs text-slate-500">Mission Intelligence</div>
-            </Link>
-            <nav className="mt-8 space-y-1">
-              {NAV.map((n) => (
-                <Link key={n.href} href={n.href}
-                  className="block rounded-md px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white">
-                  {n.label}
-                </Link>
-              ))}
-            </nav>
-            <div className="mt-10 border-t border-slate-800 pt-4 text-[11px] leading-relaxed text-slate-600">
-              Data: CelesTrak · NASA DONKI<br/>Reasoning: IBM Granite on watsonx
+          <aside className="w-56 shrink-0 border-r px-6 py-7" style={{ borderColor: "var(--rule)", background: "var(--sheet)" }}>
+            <div className="text-[16px] font-medium tracking-[0.22em]">ASTRAOPS</div>
+            <div className="eyebrow mt-1.5">Mission intelligence</div>
+            <NavRail />
+            <div className="mt-12 space-y-1 text-[10px] leading-relaxed" style={{ color: "var(--ink-dim)" }}>
+              <div>CELESTRAK · NASA DONKI</div>
+              <div>IBM GRANITE ON WATSONX</div>
             </div>
           </aside>
-          <main className="flex-1 overflow-x-hidden p-8">{children}</main>
+          <main className="min-w-0 flex-1 px-9 py-8">{children}</main>
         </div>
       </body>
     </html>

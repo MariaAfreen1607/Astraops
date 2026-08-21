@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api, SpaceWeather, Brief } from "@/lib/api";
+import Explain from "@/components/Explain";
 
 export default function SpaceWeatherPage() {
   const [data, setData] = useState<SpaceWeather | null>(null);
@@ -20,27 +21,47 @@ export default function SpaceWeatherPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Space Weather Sentinel</h1>
-      <p className="mt-1 text-sm text-slate-400">
+      <h1 className="doc-title">Space Weather Sentinel</h1>
+      <p className="mt-1 text-sm ">
         NOAA&apos;s G-scale was calibrated for power grids, not orbital drag. These briefs translate events into orbit-regime impact.
       </p>
 
       <button onClick={getBrief} disabled={briefing || !data}
-        className="mt-6 rounded bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 disabled:opacity-50">
+        className="mt-6 rounded btn btn-primary disabled:opacity-50">
         {briefing ? "Granite is analysing…" : "Generate operational brief"}
       </button>
 
-      {err && <div className="mt-6 rounded border border-red-900 bg-red-950/50 p-4 text-sm text-red-300">{err}</div>}
+      {err && <div className="mt-6 sheet p-4 text-sm">{err}</div>}
 
       {brief && (
-        <div className="mt-6 rounded-lg border border-indigo-900 bg-indigo-950/30 p-5">
-          <div className="text-xs uppercase tracking-wide text-indigo-400">AI brief · {brief.model_used}</div>
-          <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-200">{brief.brief}</pre>
+        <div className="mt-6 brief-panel p-5">
+          <div className="text-xs uppercase tracking-wide ">AI brief · {brief.model_used}</div>
+          <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-relaxed ">{brief.brief}</pre>
         </div>
       )}
 
       {data && (
-        <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="mt-9 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <ColNote t="Solar flares">
+            Sudden X-ray brightenings, graded C, M then X — each letter is ten times stronger than
+            the last. M and X class flares raise the risk of single-event upsets in spacecraft
+            electronics and can black out HF radio on Earth&apos;s sunlit side.
+          </ColNote>
+          <ColNote t="Coronal mass ejections">
+            Billion-tonne clouds of magnetised plasma thrown off the Sun. Speed matters most: a
+            600 km/s CME reaches Earth in roughly three days, faster ones in under two, and the
+            arrival is what heats and expands the upper atmosphere.
+          </ColNote>
+          <ColNote t="Geomagnetic storms">
+            Disturbances in Earth&apos;s magnetic field, indexed by Kp from 0 to 9. Kp above 5 is a
+            storm. Storms heat the thermosphere, which thickens the air satellites fly through and
+            increases drag on everything in low orbit.
+          </ColNote>
+        </div>
+      )}
+
+      {data && (
+        <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Panel title={`Solar flares (${data.solar_flares.length})`}>
             {data.solar_flares.map(f => (
               <Row key={f.flare_id} main={f.class_type ?? "?"}
@@ -58,22 +79,42 @@ export default function SpaceWeatherPage() {
               <Row key={s.gst_id} main={s.kp_index_max ? `Kp ${s.kp_index_max}` : "?"}
                    sub={s.start_time?.slice(0,16).replace("T"," ") ?? "?"} />
             ))}
-            {data.geomagnetic_storms.length === 0 && <div className="p-3 text-sm text-slate-500">None in window.</div>}
+            {data.geomagnetic_storms.length === 0 && <div className="p-3 text-sm ">None in window.</div>}
           </Panel>
         </div>
       )}
+      <Explain title="Why this page exists">
+        <p>NASA publishes every one of these events openly, in real time. What nobody publishes is
+        what they mean for a spacecraft.</p>
+        <p>NOAA&apos;s storm scale was built around effects on the ground — power grids and radio.
+        It was never calibrated for orbital drag. In February 2022 a storm rated G1, the mildest
+        category, raised air density at 210 km enough to bring down 38 of 49 newly launched Starlink
+        satellites. The number said &quot;minor&quot;; the outcome was a total loss.</p>
+        <p>The brief above closes that gap. Granite reads the same events NASA publishes and states
+        what they imply for each orbit band, which subsystems are exposed, and what an operator
+        should do in the next 24 to 72 hours.</p>
+      </Explain>
+    </div>
+  );
+}
+
+function ColNote({ t, children }: { t: string; children: React.ReactNode }) {
+  return (
+    <div className="sheet p-4">
+      <div className="eyebrow">{t}</div>
+      <div className="mt-2 text-[11.5px] leading-relaxed" style={{ color: "var(--ink-mid)" }}>{children}</div>
     </div>
   );
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/40">
-      <div className="border-b border-slate-800 px-4 py-3 text-xs uppercase tracking-wide text-slate-400">{title}</div>
-      <div className="max-h-96 overflow-y-auto divide-y divide-slate-800">{children}</div>
+    <div className="sheet">
+      <div className=" px-4 py-3 text-xs uppercase tracking-wide ">{title}</div>
+      <div className="max-h-96 overflow-y-auto ">{children}</div>
     </div>
   );
 }
 function Row({ main, sub }: { main: string; sub: string }) {
-  return <div className="px-4 py-3"><div className="text-sm font-medium">{main}</div><div className="text-xs text-slate-500">{sub}</div></div>;
+  return <div className="px-4 py-3"><div className="text-sm font-medium">{main}</div><div className="text-xs ">{sub}</div></div>;
 }

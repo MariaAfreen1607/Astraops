@@ -10,12 +10,12 @@ export default function SeparationChart({ data }: { data: SeparationProfile }) {
     : "intermediate geometry";
 
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-5">
-      <div className="text-xs uppercase tracking-wide text-slate-400">Approach geometry</div>
+    <div className="sheet p-5">
+      <div className="text-xs uppercase tracking-wide ">Approach geometry</div>
       <div className="mt-1 text-sm">
         {data.sat1_name} / {data.sat2_name} — closest {data.min_separation_km} km
       </div>
-      <div className="mt-1 text-xs text-slate-500">
+      <div className="mt-1 text-xs ">
         Mean relative velocity {avgVel.toFixed(2)} km/s · {character}
       </div>
 

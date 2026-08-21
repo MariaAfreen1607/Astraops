@@ -6,6 +6,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
+from pathlib import Path
+
 import httpx
 
 from cache import cache
@@ -13,6 +15,34 @@ from config import get_settings
 from models import SatelliteListResponse, SatelliteDetailResponse, TLERecord
 
 logger = logging.getLogger(__name__)
+
+# Disk-backed fallback. CelesTrak withholds a group until its 2-hourly dataset
+# refreshes, and blocks clients that poll too hard — so an in-memory cache alone
+# leaves the UI empty after any restart.
+_TLE_SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / ".tle_cache"
+
+
+def _snapshot_path(group: str) -> Path:
+    return _TLE_SNAPSHOT_DIR / f"{group}.tle"
+
+
+def _save_snapshot(group: str, text: str) -> None:
+    try:
+        _TLE_SNAPSHOT_DIR.mkdir(exist_ok=True)
+        _snapshot_path(group).write_text(text, encoding="utf-8")
+    except Exception as exc:
+        logger.debug("Could not write TLE snapshot for '%s': %s", group, exc)
+
+
+def _load_snapshot(group: str) -> Optional[str]:
+    try:
+        p = _snapshot_path(group)
+        if p.exists():
+            return p.read_text(encoding="utf-8")
+    except Exception as exc:
+        logger.debug("Could not read TLE snapshot for '%s': %s", group, exc)
+    return None
+
 
 
 def _parse_tle_line2(line2: str) -> dict:
@@ -73,6 +103,17 @@ def _parse_tle_text(text: str) -> list[TLERecord]:
     return records
 
 
+
+
+def _fallback_tles(group: str):
+    """Last known good element set: memory cache, then disk, then committed seed."""
+    snap = _load_snapshot(group)
+    if not snap:
+        seed = Path(__file__).resolve().parent.parent / "seed_tle" / f"{group}.tle"
+        snap = seed.read_text(encoding="utf-8") if seed.exists() else None
+    return _parse_tle_text(snap) if snap else []
+
+
 async def fetch_satellites(group: str = "active") -> SatelliteListResponse:
     """Fetch TLE data for a satellite group from CelesTrak."""
     settings = get_settings()
@@ -87,29 +128,35 @@ async def fetch_satellites(group: str = "active") -> SatelliteListResponse:
     params = {"GROUP": group, "FORMAT": "tle"}
 
     try:
-        async with httpx.AsyncClient(timeout=settings.http_timeout, follow_redirects=True, headers={"User-Agent": "AstraOps/0.1 (hackathon project)"}) as client:
+        async with httpx.AsyncClient(timeout=settings.http_timeout, follow_redirects=True, headers={"User-Agent": "AstraOps/0.1 (+https://github.com/yourname/astraops; student project)"}) as client:
             response = await client.get(url, params=params)
             response.raise_for_status()
             body = response.text
-            # CelesTrak returns a plain-text notice (not TLEs) when its 2-hourly
-            # dataset has not refreshed since this client's last successful pull.
-            if "has not updated since your last successful" in body:
-                logger.info("CelesTrak reports no new data for '%s'; serving last known set", group)
+            satellites = _parse_tle_text(body)
+            if satellites:
+                _save_snapshot(group, body)
+            else:
+                # Anything unparseable lands here: CelesTrak's "no new data since
+                # your last pull" notice, a 403 block page, an HTML outage page.
+                # The cause differs, the remedy does not — serve last known good.
+                logger.warning("No parseable TLEs for '%s'; falling back", group)
                 stale = cache.get(f"tle:stale:{group}")
                 if stale:
                     return stale
-                satellites = []
-            else:
-                satellites = _parse_tle_text(body)
+                snap = _load_snapshot(group)
+                if not snap:
+                    seed = Path(__file__).resolve().parent.parent / "seed_tle" / f"{group}.tle"
+                    snap = seed.read_text(encoding="utf-8") if seed.exists() else None
+                satellites = _parse_tle_text(snap) if snap else []
     except httpx.TimeoutException:
-        logger.warning("CelesTrak request timed out for group '%s'", group)
-        satellites = []
+        logger.warning("CelesTrak request timed out for group '%s'; falling back", group)
+        satellites = cache.get(f"tle:stale:{group}").satellites if cache.get(f"tle:stale:{group}") else _fallback_tles(group)
     except httpx.HTTPStatusError as exc:
-        logger.warning("CelesTrak HTTP error %s for group '%s'", exc.response.status_code, group)
-        satellites = []
+        logger.warning("CelesTrak HTTP %s for group '%s'; falling back", exc.response.status_code, group)
+        satellites = cache.get(f"tle:stale:{group}").satellites if cache.get(f"tle:stale:{group}") else _fallback_tles(group)
     except Exception as exc:
-        logger.error("Unexpected error fetching TLE data: %s", exc)
-        satellites = []
+        logger.error("Unexpected error fetching TLE data: %s; falling back", exc)
+        satellites = cache.get(f"tle:stale:{group}").satellites if cache.get(f"tle:stale:{group}") else _fallback_tles(group)
 
     result = SatelliteListResponse(
         count=len(satellites),
@@ -137,7 +184,7 @@ async def fetch_satellite_by_norad(norad_id: str) -> Optional[SatelliteDetailRes
     params = {"CATNR": norad_id, "FORMAT": "tle"}
 
     try:
-        async with httpx.AsyncClient(timeout=settings.http_timeout, follow_redirects=True, headers={"User-Agent": "AstraOps/0.1 (hackathon project)"}) as client:
+        async with httpx.AsyncClient(timeout=settings.http_timeout, follow_redirects=True, headers={"User-Agent": "AstraOps/0.1 (+https://github.com/yourname/astraops; student project)"}) as client:
             response = await client.get(url, params=params)
             response.raise_for_status()
             records = _parse_tle_text(response.text)

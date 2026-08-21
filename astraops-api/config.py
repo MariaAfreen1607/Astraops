@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     chroma_db_dir: str = "chroma_db"
 
     # Cache TTL (seconds)
-    tle_cache_ttl: int = 3600          # 1 hour
+    tle_cache_ttl: int = 14400         # 4 hours — CelesTrak refreshes every 2 h
     spaceweather_cache_ttl: int = 900  # 15 minutes
     conjunction_cache_ttl: int = 1800  # 30 minutes
 

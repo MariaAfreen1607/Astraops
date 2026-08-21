@@ -1,26 +1,123 @@
 @import "tailwindcss";
 
+/* Palette drawn from aerospace technical documentation: vellum, ink,
+   oxide red for range-safety callouts, plot blue for traced data. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --vellum:  #FFFFFF;
+  --sheet:   #E8E2D2;
+  --grid:    #ECEAE3;
+  --rule:    #B9B09A;
+  --ink:     #14161A;
+  --ink-mid: #454A50;
+  --ink-dim: #6F757C;
+  --oxide:   #A8321E;
+  --plot:    #1F4E79;
+  --amber:   #8A6A00;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html { background: var(--vellum); }
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 100% 26px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 26px 100%,
+    var(--vellum);
+  color: var(--ink);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
 }
+a { color: inherit; text-decoration: none; }
+
+/* Prose gets the sans; everything structural stays mono. */
+.prose-sans { font-family: "IBM Plex Sans", system-ui, sans-serif; }
+
+.eyebrow {
+  font-size: 10px; font-weight: 500;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim);
+}
+
+h1.doc {
+  font-size: 22px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+  border-bottom: 2px solid var(--ink); padding-bottom: 8px; display: inline-block;
+}
+
+/* Sheets sit on the grid like paper on a drafting table. */
+.sheet { background: var(--sheet); border: 1px solid var(--rule); box-shadow: 3px 4px 0 rgba(20,22,26,.12); }
+.sheet-head {
+  border-bottom: 1px solid var(--rule);
+  padding: 8px 14px;
+  background: repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,.014) 6px, rgba(0,0,0,.014) 12px);
+}
+
+.metric { font-size: 36px; font-weight: 300; line-height: 1; letter-spacing: -0.02em; }
+
+table.ops { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.ops th {
+  font-size: 9.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-mid); text-align: left; padding: 8px 14px;
+  border-bottom: 1.5px solid var(--ink);
+}
+table.ops td { padding: 10px 14px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+table.ops tbody tr:hover { background: rgba(31,78,121,.055); }
+table.ops td.num { font-variant-numeric: tabular-nums; }
+
+.chip { font-size: 9.5px; letter-spacing: 0.12em; padding: 2px 8px; text-transform: uppercase; border: 1px solid currentColor; }
+.chip-low    { color: var(--ink-dim); }
+.chip-medium { color: var(--amber); }
+.chip-high   { color: var(--oxide); background: rgba(168,50,30,.07); }
+
+.btn {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 9px 18px; border: 1px solid var(--ink); background: transparent; color: var(--ink);
+  transition: background .12s, color .12s;
+}
+.btn:hover:not(:disabled) { background: var(--ink); color: var(--sheet); }
+.btn:disabled { opacity: .35; }
+.btn-primary { background: var(--ink); color: var(--sheet); }
+.btn-primary:hover:not(:disabled) { background: var(--plot); border-color: var(--plot); }
+
+.field {
+  font-family: "IBM Plex Mono", monospace; font-size: 13px;
+  background: var(--sheet); border: 1px solid var(--rule); color: var(--ink); padding: 8px 12px;
+}
+.field:focus { outline: 2px solid var(--plot); outline-offset: -2px; border-color: var(--plot); }
+
+.nav-item {
+  display: block; padding: 7px 0 7px 12px; font-size: 12px; color: var(--ink-mid);
+  border-left: 2px solid transparent; text-transform: uppercase; letter-spacing: 0.08em;
+}
+.nav-item:hover { color: var(--ink); }
+.nav-item[data-active="true"] { color: var(--ink); border-left-color: var(--oxide); font-weight: 500; }
+
+/* Granite output is message traffic — set it as such. */
+.brief { font-size: 12px; line-height: 1.8; white-space: pre-wrap; }
+.brief-panel { background: var(--sheet); border: 1px solid var(--rule); border-left: 3px solid var(--plot); }
+
+@keyframes pulse-live { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
+.live-dot { animation: pulse-live 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none } * { transition: none !important } }
+
+.doc-title { font-size: 21px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 2px solid var(--ink); padding-bottom: 7px; display: inline-block; }
+.sheet .eyebrow, .sheet .text-xs { color: var(--ink-dim); }
+
+/* Beige panels, forced above Tailwind's layer ordering. */
+.sheet, div.sheet {
+  background-color: #E8E2D2 !important;
+  border: 1px solid #B9B09A !important;
+  box-shadow: 3px 4px 0 rgba(20,22,26,.12) !important;
+}
+.brief-panel {
+  background-color: #E8E2D2 !important;
+  border: 1px solid #B9B09A !important;
+  border-left: 3px solid #1F4E79 !important;
+}
+
+/* Explain blocks flow in columns; keep paragraphs from splitting mid-thought. */
+.sheet [style*="column-width"] > p { break-inside: avoid; margin-bottom: 0.85rem; }
+.sheet [style*="column-width"] > p:last-child { margin-bottom: 0; }
+
+/* Risk chips: readable on beige, colour carries the signal. */
+.chip { font-weight: 600; border-width: 1px; border-style: solid; background: transparent; }
+.chip-low    { color: #3D4650 !important; border-color: #8E9AA6 !important; background: #FFFFFF !important; }
+.chip-medium { color: #7A5B00 !important; border-color: #C79A16 !important; background: #FBF1D6 !important; }
+.chip-high   { color: #8E2A18 !important; border-color: #B8492F !important; background: #F8DCD5 !important; }

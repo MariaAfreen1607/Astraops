@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { api, SatelliteList, SpaceWeather, ConjunctionScreen } from "@/lib/api";
 import OrbitGlobe from "@/components/OrbitGlobe";
+import Explain from "@/components/Explain";
 
 export default function Dashboard() {
   const [sats, setSats] = useState<SatelliteList | null>(null);
@@ -12,80 +13,130 @@ export default function Dashboard() {
   useEffect(() => {
     api<SatelliteList>("/satellites?group=stations").then(setSats).catch(e => setErr(e.message));
     api<SpaceWeather>("/spaceweather").then(setSw).catch(() => {});
-    api<ConjunctionScreen>("/conjunctions?group=starlink&threshold_km=20").then(setConj).catch(() => {});
+    api<ConjunctionScreen>("/conjunctions?group=stations&threshold_km=50").then(setConj).catch(() => {});
   }, []);
 
-  const strongestFlare = sw?.solar_flares
-    ?.filter(f => f.class_type)
-    .sort((a, b) => (b.class_type ?? "").localeCompare(a.class_type ?? ""))[0];
+  const flares = sw?.solar_flares?.filter(f => f.class_type) ?? [];
+  const strongest = [...flares].sort((a, b) =>
+    (b.class_type ?? "").localeCompare(a.class_type ?? ""))[0];
+  const mClass = flares.filter(f => /^[MX]/.test(f.class_type ?? "")).length;
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Mission Dashboard</h1>
-      <p className="mt-1 text-sm text-slate-400">
-        Live orbital and heliophysics data, screened and interpreted.
+      <h1 className="doc-title">Mission Dashboard</h1>
+
+      <p className="mt-4 text-[13px] leading-relaxed" style={{ maxWidth: "76ch" }}>
+        Space agencies publish orbital and solar data openly and continuously. Almost none of it is
+        translated into a decision. AstraOps reads those feeds, runs the physics, and states what
+        the numbers mean for a spacecraft.
       </p>
 
-      {err && <div className="mt-6 rounded border border-red-900 bg-red-950/50 p-4 text-sm text-red-300">
-        Backend unreachable: {err}. Is the API running on port 8000?
-      </div>}
+      {err && (
+        <div className="sheet mt-6 p-4 text-[12.5px]" style={{ borderLeft: "3px solid var(--oxide)" }}>
+          Backend unreachable — {err}. Start the API with{" "}
+          <span className="mono">uvicorn main:app --port 8000</span>.
+        </div>
+      )}
 
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card title="Tracked objects (stations)" value={sats ? String(sats.count) : "…"}
-              sub={sats ? `source: ${sats.source}` : "loading"} />
-        <Card title="Conjunctions < 20 km" value={conj ? String(conj.events.length) : "…"}
-              sub={conj ? `${conj.total_pairs_screened.toLocaleString()} pairs screened` : "screening…"} />
-        <Card title="Strongest flare (7d)" value={strongestFlare?.class_type ?? (sw ? "none" : "…")}
-              sub={strongestFlare?.active_region ? `active region ${strongestFlare.active_region}` : "NASA DONKI"} />
+        <Card
+          label="Objects tracked"
+          value={sats ? String(sats.count) : "…"}
+          unit="crewed stations & visiting vehicles"
+          note="Orbital element sets pulled live from CelesTrak and propagated with SGP4." />
+        <Card
+          label="Close approaches"
+          value={conj ? String(conj.events.length) : "…"}
+          unit={conj ? `within ${conj.threshold_km} km, next 3 h` : "screening"}
+          note={conj
+            ? `${conj.total_pairs_screened.toLocaleString()} satellite pairs checked. Zero is the healthy result.`
+            : "Propagating every pair forward in time."} />
+        <Card
+          label="Strongest flare"
+          value={strongest?.class_type ?? (sw ? "quiet" : "…")}
+          unit="past 7 days"
+          note={strongest
+            ? `${mClass} M-or-X class event${mClass === 1 ? "" : "s"} this week. Region ${strongest.active_region ?? "unnumbered"}.`
+            : "No flares recorded by NASA DONKI in this window."} />
       </div>
 
-      <section className="mt-10">
-        <OrbitGlobe group="stations" limit={400} />
+      <section className="mt-9">
+        <div className="eyebrow">Where everything is right now</div>
+        <p className="mt-2 text-[12px]" style={{ color: "var(--ink-mid)", maxWidth: "76ch" }}>
+          Each marker is a real object, positioned by propagating its current element set to this
+          second. Altitude is compressed logarithmically so low orbit and geostationary orbit are
+          both readable — at true scale, GEO would sit five Earth-radii off the screen.
+        </p>
+        <div className="mt-3">
+          <OrbitGlobe group="stations" limit={400} />
+        </div>
       </section>
 
       <section className="mt-10">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">Highest-risk approaches</h2>
-        <div className="mt-3 overflow-hidden rounded-lg border border-slate-800">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-900 text-left text-xs uppercase text-slate-500">
-              <tr><th className="p-3">Primary</th><th className="p-3">Secondary</th>
-                  <th className="p-3">Miss (km)</th><th className="p-3">Rel. vel (km/s)</th><th className="p-3">Risk</th></tr>
+        <div className="eyebrow">Closest approaches in the next three hours</div>
+        <div className="sheet mt-3 overflow-hidden">
+          <table className="ops">
+            <thead>
+              <tr><th>Primary</th><th>Secondary</th><th>Miss</th><th>Relative velocity</th><th>Risk</th></tr>
             </thead>
             <tbody>
               {conj?.events.slice(0, 5).map((e, i) => (
-                <tr key={i} className="border-t border-slate-800">
-                  <td className="p-3">{e.sat1_name}</td>
-                  <td className="p-3">{e.sat2_name}</td>
-                  <td className="p-3 font-mono">{e.min_range_km.toFixed(2)}</td>
-                  <td className="p-3 font-mono">{e.relative_velocity_km_s?.toFixed(2) ?? "—"}</td>
-                  <td className="p-3"><RiskBadge level={e.risk_level} /></td>
+                <tr key={i}>
+                  <td>{e.sat1_name}</td>
+                  <td>{e.sat2_name}</td>
+                  <td className="num">{e.min_range_km.toFixed(2)} km</td>
+                  <td className="num">{e.relative_velocity_km_s?.toFixed(2) ?? "—"} km/s</td>
+                  <td><Risk level={e.risk_level} /></td>
                 </tr>
               ))}
               {conj && conj.events.length === 0 && (
-                <tr><td colSpan={5} className="p-4 text-slate-500">No approaches below threshold.</td></tr>
+                <tr><td colSpan={5} className="text-[12px]">
+                  Nothing within {conj.threshold_km} km. All {conj.total_pairs_screened.toLocaleString()} pairs
+                  screened clear — open Conjunctions to screen a larger constellation.
+                </td></tr>
               )}
-              {!conj && <tr><td colSpan={5} className="p-4 text-slate-500">Propagating orbits…</td></tr>}
+              {!conj && <tr><td colSpan={5} className="text-[12px]">Propagating orbits…</td></tr>}
             </tbody>
           </table>
         </div>
       </section>
+
+      <Explain title="What the four pages do">
+        <p><b>Dashboard</b> — current state at a glance: what is up there, what is getting close,
+        and how active the Sun has been this week.</p>
+        <p><b>Conjunctions</b> — screen any satellite group for close approaches. Results include the
+        exact time of closest approach, miss distance, relative velocity, and a collision probability,
+        with an AI brief that explains what the geometry actually means.</p>
+        <p><b>Space weather</b> — live solar flare, CME and geomagnetic storm data from NASA, turned
+        into an operational impact assessment per orbit band.</p>
+        <p><b>Research</b> — ask a question and get an answer drawn from indexed space-operations
+        papers, with the source passages shown.</p>
+      </Explain>
+
+      <Explain title="How it is built">
+        <p>Three layers. Ingest pulls live data from CelesTrak and NASA DONKI. Compute runs the
+        deterministic physics — SGP4 orbit propagation, pairwise conjunction screening, NOAA
+        impact scales. Interpret hands the computed results to IBM Granite on watsonx.</p>
+        <p>The language model never does arithmetic. Every number on this site comes from orbital
+        mechanics or a published feed; the model only explains what those numbers mean.</p>
+      </Explain>
     </div>
   );
 }
 
-function Card({ title, value, sub }: { title: string; value: string; sub: string }) {
+function Card({ label, value, unit, note }: { label: string; value: string; unit: string; note: string }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-5">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{title}</div>
-      <div className="mt-2 text-3xl font-semibold">{value}</div>
-      <div className="mt-1 text-xs text-slate-500">{sub}</div>
+    <div className="sheet p-5">
+      <div className="eyebrow">{label}</div>
+      <div className="metric mt-3">{value}</div>
+      <div className="mt-1.5 text-[11px]" style={{ color: "var(--ink-dim)" }}>{unit}</div>
+      <div className="mt-3 border-t pt-3 text-[11px] leading-relaxed"
+           style={{ borderColor: "var(--rule)", color: "var(--ink-mid)" }}>{note}</div>
     </div>
   );
 }
 
-export function RiskBadge({ level }: { level: string }) {
-  const c = level === "HIGH" ? "bg-red-950 text-red-300 border-red-900"
-    : level === "MEDIUM" ? "bg-amber-950 text-amber-300 border-amber-900"
-    : "bg-slate-800 text-slate-300 border-slate-700";
-  return <span className={`rounded border px-2 py-0.5 text-xs ${c}`}>{level}</span>;
+function Risk({ level }: { level: string }) {
+  const c = level === "HIGH" ? "chip-high" : level === "MEDIUM" ? "chip-medium" : "chip-low";
+  return <span className={`chip ${c}`}>{level}</span>;
 }

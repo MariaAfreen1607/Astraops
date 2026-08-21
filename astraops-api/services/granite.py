@@ -28,8 +28,21 @@ SUBSYSTEMS: which are affected (drag, radiation/SEU, comms, GPS accuracy)
 ACTION: concrete recommended steps for an operator in the next 24-72 hours
 CONFIDENCE: high/medium/low with one clause of justification
 
-Be specific and quantitative where the data supports it. Never invent numbers
-that are not derivable from the input. Under 200 words total."""
+Rules you must not break:
+- Use only numbers present in the input. Flare class, CME speed and Kp are given; drag
+  percentages, decay rates and GPS error magnitudes are NOT. Do not state a figure you
+  cannot point to in the input. Describe magnitude in words instead.
+- Assign each altitude to exactly one band. VLEO is below 300 km, LEO is 300-2000 km.
+  A satellite at 210 km is VLEO and must not appear under LEO.
+- Recommend only actions that physically address the effect. Drag is countered by
+  raising altitude, reducing cross-section, or expending propellant. It is not
+  countered by power, and you must never suggest that it is.
+- Do not assign a G-rating unless a geomagnetic storm with a Kp value appears in the
+  input. If none is listed, say no storm has been recorded and treat CME speeds as an
+  indication of what may arrive, not as an observed storm level.
+- If the data does not support a claim, omit the claim.
+
+Under 200 words total."""
 
 CONJUNCTION_SYSTEM = """You are a conjunction assessment analyst.
 You receive the output of an SGP4 screening run and explain it to a satellite operator.
