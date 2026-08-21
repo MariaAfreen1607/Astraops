@@ -1,0 +1,44 @@
+## render.yaml — AstraOps infrastructure definition
+## Docs: https://render.com/docs/infrastructure-as-code
+
+services:
+  - type: web
+    name: astraops-api
+    runtime: docker
+    # Path to the Dockerfile relative to the repo root.
+    dockerfilePath: astraops-api/Dockerfile
+    # Build context is the api subdirectory so COPY . . in the Dockerfile
+    # only picks up api source files, not the whole monorepo.
+    dockerContext: astraops-api
+    region: oregon
+    plan: free
+
+    # Render injects PORT automatically; uvicorn reads it via the CMD wrapper.
+    # All other vars below must be set in the Render dashboard before deploying.
+    envVars:
+      # ── NASA DONKI ────────────────────────────────────────────────────────
+      - key: NASA_API_KEY
+        sync: false          # never pull from another service; set manually
+
+      # ── IBM Watsonx (RAG pipeline) ────────────────────────────────────────
+      - key: WATSONX_APIKEY
+        sync: false
+
+      - key: WATSONX_PROJECT_ID
+        sync: false
+
+      - key: WATSONX_URL
+        sync: false
+
+      # ── CORS ──────────────────────────────────────────────────────────────
+      # Set this to your Vercel deployment URL once it is known, e.g.:
+      #   '["https://astraops.vercel.app"]'
+      # You may include multiple origins as a JSON array.
+      - key: CORS_ORIGINS
+        sync: false
+
+    healthCheckPath: /health
+
+    # The free tier spins down after 15 minutes of inactivity.
+    # The first request after idle will take ~30–60 s while the instance wakes.
+    # Upgrade to a paid plan to eliminate cold starts.

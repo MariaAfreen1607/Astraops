@@ -1,0 +1,36 @@
+# Virtual environment — always rebuilt inside the image
+.venv/
+
+# Python bytecode caches
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Local environment file — secrets must come from the platform, not the image
+.env
+.env.*
+
+# Persistent vector store — rebuilt from corpus on first query in production
+chroma_db/
+
+# TLE on-disk cache (legacy / dev artefact)
+.tle_cache/
+*.tle
+
+# Corpus documents — mount as a volume or bake in separately
+
+# Test artefacts
+.pytest_cache/
+tests/
+htmlcov/
+.coverage
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Git
+.git/
+.gitignore
