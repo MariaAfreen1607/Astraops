@@ -40,7 +40,7 @@ export default function Dashboard() {
       </div>
 
       <section className="mt-10">
-        <OrbitGlobe group="active" limit={400} />
+        <OrbitGlobe group="stations" limit={400} />
       </section>
 
       <section className="mt-10">
