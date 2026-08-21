@@ -184,3 +184,60 @@ async def screen_conjunctions(
     )
     cache.set(cache_key, result, settings.conjunction_cache_ttl)
     return result
+
+
+async def separation_profile(
+    norad_a: str,
+    norad_b: str,
+    group: str = "starlink",
+    window_minutes: int = DEFAULT_WINDOW_MINUTES,
+    step_seconds: int = 10,
+) -> dict:
+    """Return the separation-vs-time curve for one satellite pair.
+
+    This is the geometry behind a conjunction: a V-shaped approach bottoming out at TCA.
+    A shallow, wide V means a slow co-planar drift; a sharp, narrow V means a high-energy
+    crossing encounter.
+    """
+    from sgp4.api import Satrec, jday
+
+    sat_response = await fetch_satellites(group)
+    by_id = {s.norad_cat_id: s for s in sat_response.satellites}
+    a, b = by_id.get(norad_a), by_id.get(norad_b)
+    if not a or not b:
+        return {"error": f"NORAD {norad_a} or {norad_b} not found in group '{group}'."}
+
+    ra_ = Satrec.twoline2rv(a.line1, a.line2)
+    rb_ = Satrec.twoline2rv(b.line1, b.line2)
+
+    start = datetime.now(timezone.utc)
+    points = []
+    steps = int(window_minutes * 60 / step_seconds) + 1
+    for i in range(steps):
+        t = start + timedelta(seconds=i * step_seconds)
+        j, f = jday(t.year, t.month, t.day, t.hour, t.minute,
+                    t.second + t.microsecond * 1e-6)
+        ea, pa, va = ra_.sgp4(j, f)
+        eb, pb, vb = rb_.sgp4(j, f)
+        if ea != 0 or eb != 0:
+            continue
+        points.append({
+            "t": t.isoformat(),
+            "minutes_from_now": round(i * step_seconds / 60, 2),
+            "separation_km": round(math.dist(pa, pb), 3),
+            "relative_velocity_km_s": round(math.dist(va, vb), 4),
+        })
+
+    if not points:
+        return {"error": "Propagation failed for this pair."}
+
+    closest = min(points, key=lambda p: p["separation_km"])
+    return {
+        "sat1_norad": norad_a, "sat1_name": a.name,
+        "sat2_norad": norad_b, "sat2_name": b.name,
+        "window_minutes": window_minutes,
+        "step_seconds": step_seconds,
+        "tca": closest["t"],
+        "min_separation_km": closest["separation_km"],
+        "points": points,
+    }

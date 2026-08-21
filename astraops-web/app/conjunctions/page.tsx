@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { api, ConjunctionScreen, Brief } from "@/lib/api";
+import { api, ConjunctionScreen, Brief, SeparationProfile } from "@/lib/api";
+import SeparationChart from "@/components/SeparationChart";
 
 export default function Conjunctions() {
   const [group, setGroup] = useState("starlink");
@@ -10,9 +11,17 @@ export default function Conjunctions() {
   const [loading, setLoading] = useState(false);
   const [briefing, setBriefing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [profile, setProfile] = useState<SeparationProfile | null>(null);
+  const [profiling, setProfiling] = useState(false);
+
+  const loadProfile = (a: string, b: string) => {
+    setProfiling(true); setProfile(null);
+    api<SeparationProfile>(`/conjunctions/profile?norad_a=${a}&norad_b=${b}&group=${group}&window_minutes=180&step_seconds=10`)
+      .then(setProfile).catch(e => setErr(e.message)).finally(() => setProfiling(false));
+  };
 
   const run = () => {
-    setLoading(true); setErr(null); setData(null); setBrief(null);
+    setLoading(true); setErr(null); setData(null); setBrief(null); setProfile(null);
     api<ConjunctionScreen>(`/conjunctions?group=${group}&threshold_km=${threshold}`)
       .then(setData).catch(e => setErr(e.message)).finally(() => setLoading(false));
   };
@@ -87,7 +96,8 @@ export default function Conjunctions() {
               </thead>
               <tbody>
                 {data.events.map((e, i) => (
-                  <tr key={i} className="border-t border-slate-800 hover:bg-slate-900/40">
+                  <tr key={i} onClick={() => loadProfile(e.sat1_norad, e.sat2_norad)}
+                      className="cursor-pointer border-t border-slate-800 hover:bg-slate-900/40">
                     <td className="p-3">{e.sat1_name}<div className="text-xs text-slate-600">{e.sat1_norad}</div></td>
                     <td className="p-3">{e.sat2_name}<div className="text-xs text-slate-600">{e.sat2_norad}</div></td>
                     <td className="p-3 font-mono text-xs">{new Date(e.tca).toISOString().replace("T"," ").slice(0,19)}</td>
@@ -104,10 +114,14 @@ export default function Conjunctions() {
             </table>
           </div>
           <p className="mt-3 text-xs text-slate-600">
+            Click any row to plot its approach geometry.{" "}
             Pc assumes isotropic 200 m covariance and 20 m combined hard-body radius — screening defaults, not operator covariances.
           </p>
         </>
       )}
+
+      {profiling && <div className="mt-6 text-sm text-slate-500">Propagating approach geometry…</div>}
+      {profile && <div className="mt-6"><SeparationChart data={profile} /></div>}
     </div>
   );
 }

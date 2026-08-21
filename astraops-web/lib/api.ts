@@ -35,3 +35,14 @@ export interface SpaceWeather {
 }
 
 export interface Brief { generated_at: string; model_used: string; subject: string; brief: string; }
+
+export interface ProfilePoint {
+  t: string; minutes_from_now: number;
+  separation_km: number; relative_velocity_km_s: number;
+}
+export interface SeparationProfile {
+  sat1_norad: string; sat1_name: string;
+  sat2_norad: string; sat2_name: string;
+  window_minutes: number; step_seconds: number;
+  tca: string; min_separation_km: number; points: ProfilePoint[];
+}

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from models import ConjunctionScreenResponse
 from services.conjunctions import screen_conjunctions
@@ -35,3 +35,18 @@ async def screen(
         threshold_km=threshold_km,
         max_pairs=max_pairs,
     )
+
+
+@router.get("/profile", summary="Separation-vs-time curve for a satellite pair")
+async def conjunction_profile(
+    norad_a: str,
+    norad_b: str,
+    group: str = "starlink",
+    window_minutes: int = 180,
+    step_seconds: int = 10,
+):
+    from services.conjunctions import separation_profile
+    result = await separation_profile(norad_a, norad_b, group, window_minutes, step_seconds)
+    if "error" in result:
+        raise HTTPException(404, result["error"])
+    return result
