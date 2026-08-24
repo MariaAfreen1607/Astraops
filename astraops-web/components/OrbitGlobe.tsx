@@ -18,7 +18,7 @@ export default function OrbitGlobe({ group = "starlink", limit = 400 }: { group?
   useEffect(() => {
     const fit = () => {
       const w = boxRef.current?.clientWidth ?? 560;
-      setSide(Math.max(280, Math.min(w, 620)));
+      setSide(Math.max(280, Math.min(w, Math.round(window.innerHeight * 1.15))));
     };
     fit();
     window.addEventListener("resize", fit);
@@ -48,7 +48,7 @@ export default function OrbitGlobe({ group = "starlink", limit = 400 }: { group?
   if (err) return <div className="sheet p-4 text-sm">{err}</div>;
 
   return (
-    <div className="sheet p-5">
+    <div className="sheet p-5" style={{ maxWidth: side + 48, marginLeft: "auto", marginRight: "auto" }}>
       <div className="flex items-baseline justify-between">
         <div>
           <div className="text-xs uppercase tracking-wide ">Live orbital positions</div>
@@ -105,7 +105,7 @@ export default function OrbitGlobe({ group = "starlink", limit = 400 }: { group?
         <span><span style={{ color: "#C0392B" }}>●</span>&nbsp; under 500 km</span>
         <span><span style={{ color: "#1F4E79" }}>●</span>&nbsp; 500–1000 km</span>
         <span><span style={{ color: "#1E7A46" }}>●</span>&nbsp; above 1000 km</span>
-        <span className="ml-auto">log-compressed altitude · refreshes every 15 s</span>
+        <span>log-compressed altitude · refreshes every 15 s</span>
       </div>
     </div>
   );
