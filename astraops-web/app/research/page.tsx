@@ -78,7 +78,7 @@ export default function Research() {
         <>
           <div className="brief-panel mt-7 p-5">
             <div className="eyebrow">Answer · {res.model_used}</div>
-            <div className="mt-3 text-[13px] leading-relaxed" style={{ maxWidth: "78ch" }}>{res.answer}</div>
+            <div className="mt-3 text-[13px] leading-relaxed" style={{ maxWidth: "78ch", marginLeft: "auto", marginRight: "auto" }}>{res.answer}</div>
           </div>
 
           <div className="mt-6">

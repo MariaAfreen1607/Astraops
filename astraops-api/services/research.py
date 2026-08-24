@@ -307,21 +307,44 @@ async def answer_question(query: ResearchQuery) -> ResearchAnswer:
     sources = _docs_to_sources(chunks_with_scores)
 
     # ── 5. Generate answer ────────────────────────────────────────────────────
-    try:
-        from langchain_core.messages import HumanMessage
+    from langchain_core.messages import HumanMessage
 
-        llm = _build_llm()
-        prompt = _build_prompt(query.question, chunks_with_scores)
-        response = await asyncio.to_thread(llm.invoke, [HumanMessage(content=prompt)])
-        answer_text = response.content.strip()
-    except Exception as exc:
-        logger.error("LLM generation failed: %s", exc)
-        # Graceful degradation: return sources without a generated answer
-        answer_text = (
-            "Answer generation failed. "
-            "The retrieved sources below may still be helpful. "
-            f"Error: {exc}"
-        )
+    answer_text = None
+    last_exc = None
+    for attempt in range(3):
+        try:
+            llm = _build_llm()
+            prompt = _build_prompt(query.question, chunks_with_scores)
+            response = await asyncio.to_thread(llm.invoke, [HumanMessage(content=prompt)])
+            answer_text = response.content.strip()
+            break
+        except Exception as exc:
+            last_exc = exc
+            text = str(exc)
+            transient = ("429" in text or "consumption_limit" in text
+                         or "timeout" in text.lower())
+            if transient and attempt < 2:
+                wait = 2 ** attempt
+                logger.warning("Granite busy (attempt %d/3); retrying in %ds",
+                               attempt + 1, wait)
+                await asyncio.sleep(wait)
+                continue
+            logger.error("LLM generation failed: %s", exc)
+            break
+
+    if answer_text is None:
+        text = str(last_exc)
+        if "429" in text or "consumption_limit" in text:
+            answer_text = (
+                "The watsonx free tier hit its concurrent-request limit for this model. "
+                "The passages below are the sources this answer would have been drawn "
+                "from — ask again in a few seconds for the written answer."
+            )
+        else:
+            answer_text = (
+                "Answer generation is unavailable right now. "
+                "The retrieved sources below may still be helpful."
+            )
 
     return ResearchAnswer(
         question=query.question,
