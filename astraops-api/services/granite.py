@@ -79,6 +79,23 @@ these are screening defaults, not operator-supplied covariances.
 Under 180 words. Do not invent data."""
 
 
+POSTURE_SYSTEM = """You are the duty officer writing the top-line status for a mission
+operations dashboard. You receive the current tracked-object count, the closest screened
+approach, and the strongest recent solar activity.
+
+Output exactly two lines and nothing else:
+Line 1: a single status word — NOMINAL, ELEVATED, or ACTION REQUIRED
+Line 2: one sentence, under 30 words, citing the specific numbers that justify it.
+
+Choose the status from the data:
+- ACTION REQUIRED only if a conjunction is under 5 km, or a storm is observed with Kp>=6.
+- ELEVATED if a conjunction is under 25 km at over 7 km/s, or M/X class flares are present,
+  or a fast CME is inbound.
+- NOMINAL otherwise.
+
+Never invent figures. Never add headings, bullets, or extra commentary."""
+
+
 @lru_cache(maxsize=1)
 def _get_llm():
     """Lazily construct the Granite chat model; None if credentials are absent."""
@@ -177,3 +194,37 @@ def brief_conjunction(event) -> str:
         f"Risk band: {event.risk_level}"
     )
     return _invoke(CONJUNCTION_SYSTEM, payload)
+
+
+def brief_posture(sat_count, top_event, flares, cmes, storms) -> str:
+    """One-line operational posture synthesising the dashboard's three feeds."""
+    lines = [f"Tracked objects: {sat_count}"]
+
+    if top_event is not None:
+        lines.append(
+            f"Closest approach: {top_event.sat1_name} / {top_event.sat2_name} at "
+            f"{top_event.min_range_km} km, relative velocity "
+            f"{top_event.relative_velocity_km_s} km/s, TCA {top_event.tca}"
+        )
+    else:
+        lines.append("Closest approach: none below screening threshold")
+
+    strongest = None
+    for f in flares:
+        if f.class_type and (strongest is None or f.class_type > strongest):
+            strongest = f.class_type
+    lines.append(f"Strongest flare in window: {strongest or 'none'}")
+
+    fastest = None
+    for c in cmes:
+        if c.speed_km_s and (fastest is None or c.speed_km_s > fastest):
+            fastest = c.speed_km_s
+    lines.append(f"Fastest CME: {str(round(fastest)) + ' km/s' if fastest else 'none'}")
+
+    kp = None
+    for st in storms:
+        if st.kp_index_max and (kp is None or st.kp_index_max > kp):
+            kp = st.kp_index_max
+    lines.append(f"Observed geomagnetic storm Kp: {kp if kp else 'none recorded'}")
+
+    return _invoke(POSTURE_SYSTEM, "\n".join(lines))

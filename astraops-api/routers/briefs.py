@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from services.conjunctions import screen_conjunctions
-from services.granite import MODEL_ID, brief_conjunction, brief_space_weather
+from services.granite import MODEL_ID, brief_conjunction, brief_posture, brief_space_weather
 from services.spaceweather import fetch_space_weather
 
 router = APIRouter(prefix="/briefs", tags=["AI Briefs"])
@@ -50,4 +50,23 @@ async def conjunction_brief(
         model_used=MODEL_ID,
         subject=f"{top.sat1_name} / {top.sat2_name} — {top.min_range_km} km at {top.tca}",
         brief=brief_conjunction(top),
+    )
+
+
+@router.get("/posture", response_model=Brief, summary="One-line operational posture for the dashboard")
+async def posture_brief(group: str = Query("stations")):
+    from services.satellites import fetch_satellites
+
+    sats = await fetch_satellites(group=group)
+    sw = await fetch_space_weather(days=7)
+    screen = await screen_conjunctions(group=group, threshold_km=500.0)
+    top = screen.events[0] if screen.events else None
+
+    return Brief(
+        generated_at=datetime.now(timezone.utc),
+        model_used=MODEL_ID,
+        subject="Current operational posture",
+        brief=brief_posture(
+            len(sats.satellites), top, sw.solar_flares, sw.cmes, sw.geomagnetic_storms
+        ),
     )
