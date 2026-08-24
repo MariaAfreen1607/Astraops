@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { api, SatelliteList, SpaceWeather, ConjunctionScreen } from "@/lib/api";
+import { Brief, api, SatelliteList, SpaceWeather, ConjunctionScreen } from "@/lib/api";
 import OrbitGlobe from "@/components/OrbitGlobe";
 import Explain from "@/components/Explain";
 import { Rocket, Satellite, Star } from "@/components/Sticker";
@@ -9,6 +9,7 @@ export default function Dashboard() {
   const [sats, setSats] = useState<SatelliteList | null>(null);
   const [sw, setSw] = useState<SpaceWeather | null>(null);
   const [swFailed, setSwFailed] = useState(false);
+  const [posture, setPosture] = useState<Brief | null>(null);
   const [conjFailed, setConjFailed] = useState(false);
   const [conj, setConj] = useState<ConjunctionScreen | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -16,6 +17,7 @@ export default function Dashboard() {
   useEffect(() => {
     api<SatelliteList>("/satellites?group=stations").then(setSats).catch(e => setErr(e.message));
     api<SpaceWeather>("/spaceweather").then(setSw).catch(() => setSwFailed(true));
+    api<Brief>("/briefs/posture").then(setPosture).catch(() => {});
     api<ConjunctionScreen>("/conjunctions?group=stations&threshold_km=500").then(setConj).catch(() => setConjFailed(true));
   }, []);
 
@@ -41,6 +43,25 @@ export default function Dashboard() {
         <div className="sheet mt-6 p-4 text-[12.5px]" style={{ borderLeft: "3px solid var(--oxide)" }}>
           Backend unreachable — {err}. Start the API with{" "}
           <span className="mono">uvicorn main:app --port 8000</span>.
+        </div>
+      )}
+
+      {posture && (
+        <div className="mt-8 sheet p-5">
+          <div className="eyebrow">Operational posture · {posture.model_used}</div>
+          <div className="mt-2">
+            <div className="text-2xl tracking-wide">
+              {posture.brief.split("\n")[0]}
+            </div>
+            <div className="mt-1 text-[13.5px] leading-relaxed">
+              {posture.brief.split("\n").slice(1).join(" ")}
+            </div>
+          </div>
+          <div className="mt-3 text-[11.5px] opacity-60">
+            Granite reads the tracked-object count, the closest screened approach and the
+            current solar activity, and states the posture. Every figure it cites is
+            computed upstream.
+          </div>
         </div>
       )}
 
