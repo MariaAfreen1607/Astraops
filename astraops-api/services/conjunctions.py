@@ -195,6 +195,7 @@ async def separation_profile(
     group: str = "starlink",
     window_minutes: int = DEFAULT_WINDOW_MINUTES,
     step_seconds: int = 10,
+    start_at: datetime | None = None,
 ) -> dict:
     """Return the separation-vs-time curve for one satellite pair.
 
@@ -213,7 +214,7 @@ async def separation_profile(
     ra_ = Satrec.twoline2rv(a.line1, a.line2)
     rb_ = Satrec.twoline2rv(b.line1, b.line2)
 
-    start = datetime.now(timezone.utc)
+    start = start_at or datetime.now(timezone.utc)
     points = []
     steps = int(window_minutes * 60 / step_seconds) + 1
     for i in range(steps):

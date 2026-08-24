@@ -18,7 +18,8 @@ export default function Conjunctions() {
 
   const loadProfile = (a: string, b: string) => {
     setProfiling(true); setProfile(null);
-    api<SeparationProfile>(`/conjunctions/profile?norad_a=${a}&norad_b=${b}&group=${group}&window_minutes=180&step_seconds=10`)
+    const startParam = data?.screened_at ? `&start_at=${encodeURIComponent(data.screened_at)}` : "";
+    api<SeparationProfile>(`/conjunctions/profile?norad_a=${a}&norad_b=${b}&group=${group}&window_minutes=180&step_seconds=10${startParam}`)
       .then(setProfile).catch(e => setErr(e.message)).finally(() => setProfiling(false));
   };
 

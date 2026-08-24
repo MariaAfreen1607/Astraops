@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 
 from models import ConjunctionScreenResponse
@@ -44,9 +45,12 @@ async def conjunction_profile(
     group: str = "starlink",
     window_minutes: int = 180,
     step_seconds: int = 10,
+    start_at: datetime | None = None,
 ):
     from services.conjunctions import separation_profile
-    result = await separation_profile(norad_a, norad_b, group, window_minutes, step_seconds)
+    result = await separation_profile(
+        norad_a, norad_b, group, window_minutes, step_seconds, start_at
+    )
     if "error" in result:
         raise HTTPException(404, result["error"])
     return result
