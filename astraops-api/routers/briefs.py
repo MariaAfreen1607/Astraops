@@ -19,17 +19,20 @@ class Brief(BaseModel):
     model_used: str
     subject: str
     brief: str
+    computed: dict | None = None
 
 
 @router.get("/spaceweather", response_model=Brief, summary="AI operational impact brief for current space weather")
 async def spaceweather_brief(days: int = Query(7, ge=1, le=30)):
     sw = await fetch_space_weather(days=days)
     text = brief_space_weather(sw.solar_flares, sw.cmes, sw.geomagnetic_storms)
+    from services.drag import estimate_drag
     return Brief(
         generated_at=datetime.now(timezone.utc),
         model_used=MODEL_ID,
         subject=f"Space weather impact assessment, last {days} days",
         brief=text,
+        computed=estimate_drag(sw.cmes, sw.geomagnetic_storms),
     )
 
 

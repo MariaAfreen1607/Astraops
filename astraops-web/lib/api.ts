@@ -35,7 +35,19 @@ export interface SpaceWeather {
   solar_flares: SolarFlare[]; cmes: CMEEvent[]; geomagnetic_storms: GeomagneticStorm[];
 }
 
-export interface Brief { generated_at: string; model_used: string; subject: string; brief: string; }
+export interface Computed {
+  kp: number;
+  kp_basis: string;
+  density_increase_pct: number;
+  decay_72h_m: Record<string, number>;
+  quiet_decay_72h_m: Record<string, number>;
+  fastest_cme_km_s?: number;
+  transit_hours?: number;
+  arrival_utc?: string;
+  hours_until_arrival?: number;
+}
+
+export interface Brief { generated_at: string; model_used: string; subject: string; brief: string; computed?: Computed | null; }
 
 export interface ProfilePoint {
   t: string; minutes_from_now: number;

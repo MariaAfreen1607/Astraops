@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api, SpaceWeather, Brief } from "@/lib/api";
 import Explain from "@/components/Explain";
 import { Sun } from "@/components/Sticker";
+import ComputedPanel from "@/components/ComputedPanel";
 
 export default function SpaceWeatherPage() {
   const [data, setData] = useState<SpaceWeather | null>(null);
@@ -50,6 +51,7 @@ export default function SpaceWeatherPage() {
           <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-relaxed ">{brief.brief}</pre>
         </div>
       )}
+      {brief?.computed && <ComputedPanel c={brief.computed} />}
 
       {data && (
         <div className="mt-9 grid grid-cols-1 gap-4 md:grid-cols-3">

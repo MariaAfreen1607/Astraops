@@ -29,9 +29,20 @@ ACTION: concrete recommended steps for an operator in the next 24-72 hours
 CONFIDENCE: high/medium/low with one clause of justification
 
 Rules you must not break:
-- Use only numbers present in the input. Flare class, CME speed and Kp are given; drag
-  percentages, decay rates and GPS error magnitudes are NOT. Do not state a figure you
-  cannot point to in the input. Describe magnitude in words instead.
+- Use only numbers present in the input. Where a COMPUTED block appears, those figures
+  are authoritative and you must cite them explicitly: arrival time, density increase,
+  and the altitude loss for each band. Any figure NOT in the input (GPS error magnitudes,
+  fuel cost) must be described in words, never invented.
+- Open the brief with a single ARRIVAL line stating when the disturbance reaches Earth and
+  how many hours remain, taken from the COMPUTED block. If no CME arrival is given, say the
+  disturbance is already in progress.
+- Then lead IMPACT with how much altitude is lost in each band.
+- For bands with no meaningful effect, write "no significant drag effect at this altitude"
+  rather than "no data". Reserve "no data" for cases where the input is genuinely silent.
+- Distinguish observed from forecast. The COMPUTED block labels Kp as either "observed" or
+  "forecast from CME speed". A forecast Kp, and the density increase derived from it, must
+  never be described as observed or measured. If the basis is forecast, CONFIDENCE cannot
+  be high — use medium and say the storm level is inferred from CME speed, not measured.
 - Assign each altitude to exactly one band. VLEO is below 300 km, LEO is 300-2000 km.
   A satellite at 210 km is VLEO and must not appear under LEO.
 - Recommend only actions that physically address the effect. Drag is countered by
@@ -145,7 +156,13 @@ def brief_space_weather(flares, cmes, storms) -> str:
     if not lines:
         return "No significant space weather events in the requested window."
 
-    return _invoke(SPACE_WEATHER_SYSTEM, "Events:\n" + "\n".join(lines))
+    from services.drag import estimate_drag, format_for_prompt
+    payload = "Events:\n" + "\n".join(lines)
+    est = estimate_drag(cmes, storms)
+    if est:
+        payload += "\n\n" + format_for_prompt(est)
+
+    return _invoke(SPACE_WEATHER_SYSTEM, payload)
 
 
 def brief_conjunction(event) -> str:
