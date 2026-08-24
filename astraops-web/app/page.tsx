@@ -8,13 +8,15 @@ import { Rocket, Satellite, Star } from "@/components/Sticker";
 export default function Dashboard() {
   const [sats, setSats] = useState<SatelliteList | null>(null);
   const [sw, setSw] = useState<SpaceWeather | null>(null);
+  const [swFailed, setSwFailed] = useState(false);
+  const [conjFailed, setConjFailed] = useState(false);
   const [conj, setConj] = useState<ConjunctionScreen | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     api<SatelliteList>("/satellites?group=stations").then(setSats).catch(e => setErr(e.message));
-    api<SpaceWeather>("/spaceweather").then(setSw).catch(() => {});
-    api<ConjunctionScreen>("/conjunctions?group=stations&threshold_km=500").then(setConj).catch(() => {});
+    api<SpaceWeather>("/spaceweather").then(setSw).catch(() => setSwFailed(true));
+    api<ConjunctionScreen>("/conjunctions?group=stations&threshold_km=500").then(setConj).catch(() => setConjFailed(true));
   }, []);
 
   const flares = sw?.solar_flares?.filter(f => f.class_type) ?? [];
@@ -51,15 +53,19 @@ export default function Dashboard() {
         <Card
           label="Close approaches"
           value={conj ? String(conj.events.length) : "…"}
-          unit={conj ? `within ${conj.threshold_km} km, next 3 h` : "screening"}
-          note={conj
+          unit={conjFailed ? "unavailable" : conj ? `within ${conj.threshold_km} km, next 3 h` : "screening"}
+          note={conjFailed
+            ? "CelesTrak element sets could not be fetched, so no screening was run."
+            : conj
             ? `${conj.total_pairs_screened.toLocaleString()} pairs propagated forward and checked at every step.`
             : "Propagating every pair forward in time."} />
         <Card
           label="Strongest flare"
-          value={strongest?.class_type ?? (sw ? "quiet" : "…")}
+          value={swFailed ? "—" : strongest?.class_type ?? (sw ? "quiet" : "…")}
           unit="past 7 days"
-          note={strongest
+          note={swFailed
+            ? "NASA DONKI could not be reached. This is a feed outage, not a quiet Sun."
+            : strongest
             ? `${mClass} M-or-X class event${mClass === 1 ? "" : "s"} this week. Region ${strongest.active_region ?? "unnumbered"}.`
             : "No flares recorded by NASA DONKI in this window."} />
       </div>

@@ -35,7 +35,6 @@ DEFAULT_STEP_SECONDS = 30      # coarse grid resolution
 REFINE_STEP_SECONDS = 1        # fine grid resolution near TCA
 MAX_SATELLITES = 150           # O(N^2 * T) guard
 DOCKED_FLOOR_KM = 0.050        # pairs closer than this are treated as co-located, not conjunctions
-DOCKED_FLOOR_KM = 0.050        # pairs closer than this are treated as co-located, not conjunctions
 
 
 def _time_grid(start: datetime, minutes: int, step_s: int):
@@ -170,6 +169,7 @@ async def screen_conjunctions(
             )
         )
 
+    events = _collapse_colocated(events)
     events.sort(key=lambda e: e.min_range_km)
     logger.info(
         "Screened %d pairs over %d min for group '%s': %d events below %.1f km",
@@ -188,6 +188,55 @@ async def screen_conjunctions(
     cache.set(cache_key, result, settings.conjunction_cache_ttl)
     return result
 
+
+
+
+def _collapse_colocated(events):
+    """Merge duplicate rows produced by docked or co-located clusters.
+
+    Modules docked to the same station (CSS Tianhe/Wentian/Mengtian, ISS and its
+    visiting vehicles) each screen as a separate object, so a single encounter
+    against an external object appears once per module with identical geometry.
+    Rows sharing a TCA, miss distance and one common object are one event.
+    """
+    buckets: dict[tuple, list] = {}
+    for e in events:
+        key = (
+            e.tca.replace(microsecond=0) if e.tca else None,
+            round(e.min_range_km, 2),
+            round(e.relative_velocity_km_s, 2) if e.relative_velocity_km_s else None,
+        )
+        buckets.setdefault(key, []).append(e)
+
+    merged = []
+    for group_events in buckets.values():
+        if len(group_events) == 1:
+            merged.append(group_events[0])
+            continue
+
+        # Find an object present in every row of this bucket, regardless of
+        # which column it landed in. That object is the external one; everything
+        # else is a docked cluster reporting the same encounter.
+        common = {group_events[0].sat1_name, group_events[0].sat2_name}
+        for e in group_events[1:]:
+            common &= {e.sat1_name, e.sat2_name}
+
+        if len(common) == 1:
+            shared = next(iter(common))
+            cluster = set()
+            for e in group_events:
+                cluster |= {e.sat1_name, e.sat2_name} - {shared}
+
+            keep = group_events[0]
+            label = f" (+{len(cluster) - 1} co-located)" if len(cluster) > 1 else ""
+            other = sorted(cluster)[0]
+            keep.sat1_name = shared
+            keep.sat2_name = f"{other}{label}"
+            merged.append(keep)
+        else:
+            merged.extend(group_events)
+
+    return merged
 
 async def separation_profile(
     norad_a: str,
