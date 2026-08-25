@@ -144,7 +144,7 @@ describe("Research — successful query via chip click", () => {
       expect(fetchSpy).toHaveBeenCalledOnce();
     });
 
-    const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [url, options] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toMatch(/\/research\/ask/);
     expect(options.method).toBe("POST");
     const body = JSON.parse(options.body as string);
@@ -237,7 +237,8 @@ describe("Research — successful query via text input", () => {
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledOnce();
     });
-    const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    const call = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
+    const body = JSON.parse((call[1]).body as string);
     expect(body.question).toBe("What is orbital decay?");
   });
 

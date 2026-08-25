@@ -29,7 +29,7 @@ export default function SeparationChart({ data }: { data: SeparationProfile }) {
               label={{ value: "separation (km)", angle: -90, position: "insideLeft", fill: "#64748b", fontSize: 11 }} />
             <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 6, fontSize: 12 }}
               labelFormatter={(v) => `t + ${v} min`}
-              formatter={(v: number) => [`${v} km`, "separation"]} />
+              formatter={(v) => [`${Number(v).toFixed(2)} km`, "separation"]} />
             <ReferenceLine x={tcaMinutes} stroke="#f59e0b" strokeDasharray="4 4"
               label={{ value: "TCA", fill: "#f59e0b", fontSize: 11, position: "top" }} />
             <Line type="monotone" dataKey="separation_km" stroke="#818cf8" strokeWidth={2} dot={false} />
