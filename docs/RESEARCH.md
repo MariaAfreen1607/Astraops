@@ -129,3 +129,17 @@ not support a number.
 - **Data freshness.** CelesTrak refreshes each group every two hours and rate-limits clients
   that poll harder. The system falls back to the last known good element set rather than
   showing nothing, and surfaces the element-set age in the interface.
+- **Drag model.** The drag-decay estimates in `services/drag.py` are deliberately simplified
+  and their assumptions are stated in the code. The quiet-time base densities are
+  representative values — 2.5 × 10⁻¹⁰ kg/m³ at 210 km, 2.8 × 10⁻¹² kg/m³ at 400 km, and
+  5.0 × 10⁻¹³ kg/m³ at 550 km — drawn from standard NRLMSISE-00 outputs at solar minimum.
+  They are not dynamically queried from a thermospheric model. The density multiplier
+  `1.0 + 0.10 × Kp` is a linear approximation anchored to the February 2022 event where
+  a Kp of roughly 5 coincided with densities 50 % above quiet-time at 210 km; the true
+  relationship is non-linear and saturates at high Kp. The ballistic coefficient (`Cd = 2.2`,
+  `A/m = 0.01 m²/kg`) is representative of a 3U CubeSat in a tumbling attitude; actual
+  values depend on satellite geometry and attitude control. Because density grows steeply
+  below 300 km, the linear multiplier understates decay in VLEO: the code flags altitudes
+  below this band with a plain-language caveat ("orbit not sustainable, reentry in days")
+  rather than a precise number. These figures are inputs to the Granite brief; the model
+  is instructed to cite them, not to improve on them.
