@@ -34,6 +34,12 @@ AstraOps reads the same feeds and closes the interpretation gap. The architectur
 
 - **NASA DONKI space weather monitoring** — proxies the DONKI REST API for solar flares (class, peak time, active region), coronal mass ejections (speed, source location), and geomagnetic storms (Kp-max). Results are cached for 15 minutes.
 
+- **Deterministic drag-decay model** — `services/drag.py` computes, from live DONKI data alone: CME Sun-Earth transit time and estimated arrival UTC; forecast Kp derived from CME speed (or observed Kp when a storm is recorded); thermospheric density enhancement (1 + 0.10 × Kp); and 72-hour altitude loss at 210, 400, and 550 km for a 3U CubeSat (Cd 2.2, A/m 0.01 m²/kg). These figures are passed to Granite as a labelled `COMPUTED` block — Granite cites them, it does not generate them. The space weather brief response carries a `computed` field containing the raw numbers, which the frontend displays in a separate panel beside the AI narrative.
+
+- **Operational posture** — `GET /briefs/posture` fetches the current satellite count, runs conjunction screening, and reads seven days of space weather, then asks Granite to synthesise all three into a one-line status: `NOMINAL`, `ELEVATED`, or `ACTION REQUIRED`, with one sentence of justification. `ACTION REQUIRED` fires only if a conjunction is under 5 km or observed Kp ≥ 6; `ELEVATED` covers M/X-class flares, CMEs, fast conjunctions, or moderate Kp. The result is shown at the top of the dashboard.
+
+- **Co-located cluster collapse** — docked modules (CSS Tianhe/Wentian/Mengtian, ISS and its visiting vehicles) each appear as a separate TLE object, so a single external encounter produces one row per docked module with identical geometry. `_collapse_colocated` in `services/conjunctions.py` groups rows by (TCA, miss distance, relative velocity), identifies the one object common to every row in a group, and merges the cluster into a single event labelled `+N co-located` — so one conjunction remains one row in the table.
+
 - **Granite-generated operational briefs** — `GET /briefs/spaceweather` and `GET /briefs/conjunction` call IBM Granite 4 on watsonx with structured system prompts that enforce orbit-regime separation, prohibit invented figures, and require IMPACT / SUBSYSTEMS / ACTION / CONFIDENCE sections. Rate-limit errors (429) are caught and retried with exponential back-off.
 
 - **RAG research copilot** — PDF and text documents placed in `corpus/` are chunked at 800 characters (100-character overlap), embedded with IBM's `slate-125m-english-rtrvr-v2` model, and stored in a persistent ChromaDB collection. Questions are embedded the same way; the nearest passages are retrieved and given to Granite, which is instructed to cite filenames and say it does not know rather than invent.
@@ -52,6 +58,7 @@ graph TD
         RT[Routers]
         SV[Services]
         CA[TTL Cache]
+        DR[Drag model]
         GM[Granite service]
         RA[RAG service]
         CH[(ChromaDB\nchroma_db/)]
@@ -67,8 +74,10 @@ graph TD
     SV --> CA
     SV -->|cache miss| CT
     SV -->|cache miss| DN
+    RT --> DR
+    DR -->|COMPUTED block| GM
     RT --> GM
-    GM -->|system + event data| WX
+    GM -->|system + computed data| WX
     RT --> RA
     RA -->|similarity search| CH
     RA -->|embed question| WE
@@ -172,6 +181,14 @@ pytest
 ```
 84 passed in 0.17s
 ```
+
+---
+
+## Tooling
+
+[LangChain](https://github.com/langchain-ai/langchain) (`langchain-ibm`, `langchain-core`) orchestrates all model calls in the backend — the Granite briefing layer uses `ChatWatsonx` with `SystemMessage` / `HumanMessage` pairs, and the RAG pipeline is built from LangChain components throughout — `PyPDFLoader` and `TextLoader` for ingestion, `RecursiveCharacterTextSplitter` for chunking, `WatsonxEmbeddings` for vectorisation, and `langchain-chroma` for the persistent store and similarity search.
+
+[Langflow](https://github.com/langflow-ai/langflow) was used separately as a visual prototyping environment to design and validate a Mission Planner agent against the AstraOps API using the same Granite model. It is a development tool, not a runtime dependency of the application.
 
 ---
 
